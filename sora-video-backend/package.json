@@ -11,7 +11,8 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "test:connections": "ts-node src/utils/test-connections.ts"
+    "test:connections": "ts-node src/utils/test-connections.ts",
+    "test:api": "ts-node src/utils/test-video-api.ts"
   },
   "keywords": ["sora", "studio", "video", "ai", "openai"],
   "author": "",
@@ -23,7 +24,8 @@
     "redis": "^4.6.10",
     "dotenv": "^16.3.1",
     "cors": "^2.8.5",
-    "helmet": "^7.1.0"
+    "helmet": "^7.1.0",
+    "axios": "^1.6.2"
   },
   "devDependencies": {
     "typescript": "^5.3.2",

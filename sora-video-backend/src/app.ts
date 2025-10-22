@@ -5,6 +5,7 @@ import dotenv from 'dotenv';
 import { testConnection as testDbConnection } from './config/database.js';
 import { testConnection as testOpenAIConnection } from './config/openai.js';
 import { initRedis } from './config/redis.js';
+import videoRoutes from './routes/video.routes.js';
 
 // Load environment variables
 dotenv.config();
@@ -22,7 +23,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Routes placeholder
-app.get('/', (req, res) => {
+app.get('/', (_req, res) => {
   res.json({
     message: 'Sora Studio API',
     version: '1.0.0',
@@ -31,7 +32,7 @@ app.get('/', (req, res) => {
 });
 
 // Health check
-app.get('/health', async (req, res) => {
+app.get('/health', async (_req, res) => {
   res.json({
     status: 'ok',
     timestamp: new Date().toISOString(),
@@ -39,8 +40,11 @@ app.get('/health', async (req, res) => {
   });
 });
 
+// API Routes
+app.use('/api/videos', videoRoutes);
+
 // Error handling middleware
-app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error('Error:', err);
 
   const statusCode = err.statusCode || 500;

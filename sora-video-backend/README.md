@@ -103,16 +103,16 @@ Start production server:
 npm start
 ```
 
-## API Endpoints (Planned)
+## API Endpoints
 
 ### Videos
 
-- `POST /api/videos` - Create new video
-- `GET /api/videos/:id` - Get video status
-- `GET /api/videos` - List user videos
-- `DELETE /api/videos/:id` - Delete video
-- `GET /api/videos/:id/download` - Download video
-- `POST /api/videos/:id/remix` - Remix existing video
+- `POST /api/videos` - Create new video ✅
+- `GET /api/videos/:id` - Get video status ✅
+- `GET /api/videos` - List user videos ✅
+- `DELETE /api/videos/:id` - Delete video ✅
+- `GET /api/videos/:id/download` - Download video ✅
+- `POST /api/videos/:id/remix` - Remix existing video ✅
 
 ### Health
 
@@ -155,4 +155,28 @@ ISC
 
 ## Status
 
-Day 1 Complete - Project setup and configuration ✅
+- Day 1 Complete - Project setup and configuration ✅
+- Day 2 Complete - Core API Integration ✅
+
+See [DAY2-IMPLEMENTATION.md](./DAY2-IMPLEMENTATION.md) for Day 2 details and [TESTING.md](./TESTING.md) for testing guide.
+
+## New in Day 2
+
+### Implemented Files
+- `src/services/sora.service.ts` - Sora 2 API integration service
+- `src/controllers/video.controller.ts` - Video API request handlers
+- `src/routes/video.routes.ts` - Express route definitions
+- `src/middleware/validation.ts` - Request validation middleware
+- `src/utils/test-video-api.ts` - API testing script
+
+### Available Scripts
+- `npm run test:api` - Run API integration tests
+
+### Functional Endpoints
+All endpoints are now implemented and functional:
+- ✅ POST /api/videos - Create video
+- ✅ GET /api/videos/:id - Get video status
+- ✅ GET /api/videos - List videos
+- ✅ DELETE /api/videos/:id - Delete video
+- ✅ GET /api/videos/:id/download - Download video
+- ✅ POST /api/videos/:id/remix - Remix video
