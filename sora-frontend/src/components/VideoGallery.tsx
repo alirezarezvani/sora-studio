@@ -13,13 +13,16 @@ import { Video } from 'lucide-react';
 interface VideoGalleryProps {
   videos: VideoJob[];
   isLoading?: boolean;
+  onRemixCreated?: (video: VideoJob) => void;
 }
 
 type StatusFilter = 'all' | 'completed' | 'in_progress' | 'failed';
-type SortOrder = 'newest' | 'oldest';
+type ModelFilter = 'all' | 'sora-2' | 'sora-2-pro';
+type SortOrder = 'newest' | 'oldest' | 'cost_high' | 'cost_low';
 
-export const VideoGallery: React.FC<VideoGalleryProps> = ({ videos, isLoading }) => {
+export const VideoGallery: React.FC<VideoGalleryProps> = ({ videos, isLoading, onRemixCreated }) => {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [modelFilter, setModelFilter] = useState<ModelFilter>('all');
   const [sortOrder, setSortOrder] = useState<SortOrder>('newest');
   const deleteVideo = useDeleteVideo();
   const toast = useToast();
@@ -27,19 +30,37 @@ export const VideoGallery: React.FC<VideoGalleryProps> = ({ videos, isLoading })
 
   // Filter videos
   const filteredVideos = videos.filter((video) => {
-    if (statusFilter === 'all') return true;
-    if (statusFilter === 'in_progress') {
-      return video.status === 'queued' || video.status === 'in_progress';
+    // Status filter
+    if (statusFilter !== 'all') {
+      if (statusFilter === 'in_progress') {
+        if (video.status !== 'queued' && video.status !== 'in_progress') return false;
+      } else if (video.status !== statusFilter) {
+        return false;
+      }
     }
-    return video.status === statusFilter;
+
+    // Model filter
+    if (modelFilter !== 'all' && video.model !== modelFilter) {
+      return false;
+    }
+
+    return true;
   });
 
   // Sort videos
   const sortedVideos = [...filteredVideos].sort((a, b) => {
-    if (sortOrder === 'newest') {
-      return b.created_at - a.created_at;
+    switch (sortOrder) {
+      case 'newest':
+        return b.created_at - a.created_at;
+      case 'oldest':
+        return a.created_at - b.created_at;
+      case 'cost_high':
+        return (b.cost || 0) - (a.cost || 0);
+      case 'cost_low':
+        return (a.cost || 0) - (b.cost || 0);
+      default:
+        return b.created_at - a.created_at;
     }
-    return a.created_at - b.created_at;
   });
 
   const handleDelete = async (videoId: string) => {
@@ -48,6 +69,13 @@ export const VideoGallery: React.FC<VideoGalleryProps> = ({ videos, isLoading })
       toast.success('Video deleted successfully');
     } catch (error) {
       toast.error('Failed to delete video. Please try again.');
+    }
+  };
+
+  const handleRemix = (remixedVideo: VideoJob) => {
+    toast.success('Remix created! Find it in your video gallery.');
+    if (onRemixCreated) {
+      onRemixCreated(remixedVideo);
     }
   };
 
@@ -77,10 +105,22 @@ export const VideoGallery: React.FC<VideoGalleryProps> = ({ videos, isLoading })
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
             options={[
-              { value: 'all', label: 'All Videos' },
+              { value: 'all', label: 'All Status' },
               { value: 'completed', label: 'Completed' },
               { value: 'in_progress', label: 'In Progress' },
               { value: 'failed', label: 'Failed' },
+            ]}
+          />
+        </div>
+        <div className="flex-1">
+          <Select
+            label="Filter by Model"
+            value={modelFilter}
+            onChange={(e) => setModelFilter(e.target.value as ModelFilter)}
+            options={[
+              { value: 'all', label: 'All Models' },
+              { value: 'sora-2', label: 'Sora 2 (Fast)' },
+              { value: 'sora-2-pro', label: 'Sora 2 Pro (Quality)' },
             ]}
           />
         </div>
@@ -92,6 +132,8 @@ export const VideoGallery: React.FC<VideoGalleryProps> = ({ videos, isLoading })
             options={[
               { value: 'newest', label: 'Newest First' },
               { value: 'oldest', label: 'Oldest First' },
+              { value: 'cost_high', label: 'Cost (High to Low)' },
+              { value: 'cost_low', label: 'Cost (Low to High)' },
             ]}
           />
         </div>
@@ -137,7 +179,7 @@ export const VideoGallery: React.FC<VideoGalleryProps> = ({ videos, isLoading })
       {sortedVideos.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {sortedVideos.map((video) => (
-            <VideoCard key={video.id} video={video} onDelete={handleDelete} />
+            <VideoCard key={video.id} video={video} onDelete={handleDelete} onRemix={handleRemix} />
           ))}
         </div>
       )}

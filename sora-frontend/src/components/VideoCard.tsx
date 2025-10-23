@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { Badge } from './ui/Badge';
 import { Button } from './ui/Button';
@@ -11,10 +11,14 @@ import { useToast } from '@/hooks/useToast';
 interface VideoCardProps {
   video: VideoJob;
   onDelete?: (id: string) => void;
+  onRemix?: (remixedVideo: VideoJob) => void;
 }
 
-export const VideoCard: React.FC<VideoCardProps> = ({ video, onDelete }) => {
+export const VideoCard: React.FC<VideoCardProps> = ({ video, onDelete, onRemix }) => {
   const toast = useToast();
+  const [isRemixing, setIsRemixing] = useState(false);
+  const [showRemixDialog, setShowRemixDialog] = useState(false);
+  const [remixPrompt, setRemixPrompt] = useState('');
   const isMockMode = process.env.NEXT_PUBLIC_MOCK_MODE === 'true';
 
   const getStatusBadge = () => {
@@ -62,6 +66,36 @@ export const VideoCard: React.FC<VideoCardProps> = ({ video, onDelete }) => {
     e.stopPropagation();
     if (onDelete && confirm('Are you sure you want to delete this video?')) {
       onDelete(video.id);
+    }
+  };
+
+  const handleRemix = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setShowRemixDialog(true);
+  };
+
+  const submitRemix = async () => {
+    if (!remixPrompt || remixPrompt.length < 10) {
+      toast.error('Remix prompt must be at least 10 characters');
+      return;
+    }
+
+    setIsRemixing(true);
+    setShowRemixDialog(false);
+
+    try {
+      const remixedVideo = await videoApi.remix(video.id, { prompt: remixPrompt });
+      toast.success('Remix video created successfully!');
+      setRemixPrompt('');
+
+      if (onRemix) {
+        onRemix(remixedVideo);
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to remix video');
+    } finally {
+      setIsRemixing(false);
     }
   };
 
@@ -133,9 +167,20 @@ export const VideoCard: React.FC<VideoCardProps> = ({ video, onDelete }) => {
           {/* Actions */}
           <div className="flex gap-2">
             {video.status === 'completed' && (
-              <Button size="sm" variant="primary" onClick={handleDownload} className="flex-1">
-                Download
-              </Button>
+              <>
+                <Button size="sm" variant="primary" onClick={handleDownload} className="flex-1">
+                  Download
+                </Button>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={handleRemix}
+                  className="flex-1"
+                  disabled={isRemixing}
+                >
+                  {isRemixing ? 'Remixing...' : 'Remix'}
+                </Button>
+              </>
             )}
             <Button size="sm" variant="ghost" onClick={handleDelete} className="flex-1">
               Delete
@@ -143,6 +188,69 @@ export const VideoCard: React.FC<VideoCardProps> = ({ video, onDelete }) => {
           </div>
         </div>
       </div>
+
+      {/* Remix Dialog */}
+      {showRemixDialog && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setShowRemixDialog(false);
+          }}
+        >
+          <div
+            className="bg-white rounded-lg shadow-xl max-w-lg w-full p-6"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
+          >
+            <h3 className="text-xl font-bold text-gray-900 mb-2">Remix Video</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Create a variation of this video with a new prompt
+            </p>
+
+            <textarea
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-gray-900"
+              rows={4}
+              placeholder="Enter your remix prompt..."
+              value={remixPrompt}
+              onChange={(e) => setRemixPrompt(e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+            />
+
+            <p className="text-xs text-gray-500 mb-4 mt-1">{remixPrompt.length}/500 characters (min 10)</p>
+
+            <div className="flex gap-2">
+              <Button
+                variant="primary"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  submitRemix();
+                }}
+                disabled={remixPrompt.length < 10}
+                className="flex-1"
+              >
+                Create Remix
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setShowRemixDialog(false);
+                  setRemixPrompt('');
+                }}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </Link>
   );
 };
