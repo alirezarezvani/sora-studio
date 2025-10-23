@@ -67,7 +67,21 @@ export const VideoForm: React.FC<VideoFormProps> = ({ onSuccess, quotaRemaining 
       setErrors({});
       if (onSuccess) onSuccess();
     } catch (error: any) {
-      alert(error?.response?.data?.error || 'Failed to create video. Please try again.');
+      console.error('Failed to create video:', error);
+
+      // Get error message from backend
+      const errorMessage = error?.response?.data?.error || error?.message || 'Failed to create video';
+
+      // Show user-friendly error messages
+      if (errorMessage.includes('Billing hard limit') || errorMessage.includes('billing_hard_limit')) {
+        alert('❌ OpenAI Billing Limit Reached\n\nYour OpenAI account has no credits remaining.\n\nPlease add credits at:\nhttps://platform.openai.com/account/billing');
+      } else if (errorMessage.includes('billing')) {
+        alert('❌ Billing Error\n\n' + errorMessage + '\n\nCheck billing at: https://platform.openai.com/account/billing');
+      } else if (errorMessage.includes('Invalid value')) {
+        alert('❌ Invalid Parameters\n\n' + errorMessage);
+      } else {
+        alert('❌ Error: ' + errorMessage + '\n\nPlease try again or contact support.');
+      }
     }
   };
 
@@ -89,7 +103,7 @@ export const VideoForm: React.FC<VideoFormProps> = ({ onSuccess, quotaRemaining 
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               placeholder="Describe the video you want to create... (e.g., 'Wide shot of a child flying a red kite in a grassy park, golden hour sunlight, camera slowly pans upward.')"
-              className={`block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 ${
+              className={`block w-full px-3 py-2 border rounded-md shadow-sm bg-white text-gray-900 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 ${
                 errors.prompt ? 'border-red-500' : 'border-gray-300'
               }`}
             />
@@ -120,19 +134,20 @@ export const VideoForm: React.FC<VideoFormProps> = ({ onSuccess, quotaRemaining 
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Duration
             </label>
-            <div className="flex gap-4">
+            <div className="flex gap-3">
               {['4', '8', '12'].map((d) => (
-                <label key={d} className="flex items-center">
-                  <input
-                    type="radio"
-                    name="duration"
-                    value={d}
-                    checked={duration === d}
-                    onChange={(e) => setDuration(e.target.value)}
-                    className="mr-2 text-primary-600 focus:ring-primary-500"
-                  />
-                  <span className="text-sm">{d} seconds</span>
-                </label>
+                <button
+                  key={d}
+                  type="button"
+                  onClick={() => setDuration(d)}
+                  className={`flex-1 px-4 py-3 rounded-lg font-medium text-sm transition-all duration-200 border-2 ${
+                    duration === d
+                      ? 'bg-emerald-500 text-white border-emerald-500 shadow-md'
+                      : 'bg-white text-gray-700 border-gray-300 hover:border-emerald-400 hover:bg-emerald-50'
+                  }`}
+                >
+                  {d} seconds
+                </button>
               ))}
             </div>
           </div>
