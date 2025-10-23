@@ -1,6 +1,6 @@
 import dotenv from 'dotenv';
 import pool from '../config/database.js';
-import openai from '../config/openai.js';
+import { openai } from '../config/openai.js';
 import redis from '../config/redis.js';
 
 dotenv.config();
