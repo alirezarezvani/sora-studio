@@ -386,15 +386,112 @@ tail -f logs/app.log
 # Or just watch console output when running npm run dev
 ```
 
+## Database Integration Testing (Day 3)
+
+### Run Database Migration
+```bash
+npm run db:migrate
+```
+
+Expected output:
+```
+========================================
+Starting Database Migration
+========================================
+
+Testing database connection...
+✅ Database connection successful
+
+Running schema...
+✅ Database schema created successfully
+✅ Table "videos" exists
+✅ Table "video_events" exists
+✅ Table "user_quotas" exists
+
+✅ Database initialized successfully
+========================================
+Migration Complete!
+========================================
+```
+
+### Run Database Integration Tests
+```bash
+npm run test:db
+```
+
+This comprehensive test verifies:
+- ✅ Database connection (PostgreSQL)
+- ✅ Redis connection (optional)
+- ✅ Video Service CRUD operations
+- ✅ Event Service logging
+- ✅ Quota Service tracking
+- ✅ Cache Service operations
+
+Expected output:
+```
+========================================
+✅ All Database Integration Tests Passed!
+========================================
+
+Day 3 deliverables verified:
+  ✅ Video Service: CRUD operations working
+  ✅ Event Service: Audit trail logging working
+  ✅ Quota Service: User quota tracking working
+  ✅ Cache Service: Redis caching working
+  ✅ Database Migration: Schema applied and verified
+  ✅ Controllers: Integrated with database services
+
+✅ Ready for Day 4: Frontend Dashboard Development
+```
+
+### Verify Database Tables
+```bash
+# Connect to database
+psql $DATABASE_URL
+
+# List tables
+\dt
+
+# View records
+SELECT * FROM videos;
+SELECT * FROM video_events;
+SELECT * FROM user_quotas;
+```
+
+### Test Quota Enforcement
+```bash
+# Create videos until quota exceeded
+curl -X POST http://localhost:3000/api/videos \
+  -H "Content-Type: application/json" \
+  -d '{"prompt": "Test video", "model": "sora-2"}'
+```
+
+When quota exceeded, expect HTTP 429:
+```json
+{
+  "success": false,
+  "error": "Quota exceeded. You have used 100 of 100 videos.",
+  "quota": {
+    "current_usage": 100,
+    "limit": 100,
+    "remaining": 0
+  }
+}
+```
+
 ## Next Steps
 
-After confirming the API works:
+After confirming the API and database integration works:
 1. Test with different prompts and options
 2. Verify error handling
 3. Check response times
-4. Test edge cases (very long prompts, invalid IDs, etc.)
-5. Move on to Day 3: Database Integration
+4. Test edge cases (very long prompts, invalid IDs, quota limits)
+5. Verify background worker updates video status automatically
+6. Move on to Day 4: Frontend Dashboard Development
 
 ---
 
-*For automated testing script, run: `npm run test:api`*
+*For automated testing scripts:*
+- API tests: `npm run test:api`
+- Database tests: `npm run test:db`
+- Full suite: `npm test`

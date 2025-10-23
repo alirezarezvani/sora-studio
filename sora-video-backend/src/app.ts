@@ -6,6 +6,7 @@ import { testConnection as testDbConnection } from './config/database.js';
 import { testConnection as testOpenAIConnection } from './config/openai.js';
 import { initRedis } from './config/redis.js';
 import videoRoutes from './routes/video.routes.js';
+import statusUpdater from './workers/status-updater.js';
 
 // Load environment variables
 dotenv.config();
@@ -68,11 +69,16 @@ async function startServer() {
     await testOpenAIConnection();
     await initRedis();
 
+    // Start background worker for status updates
+    console.log('⚙️  Starting background worker...');
+    statusUpdater.start();
+
     // Start server
     app.listen(PORT, () => {
       console.log(`🚀 Sora Studio API running on port ${PORT}`);
       console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
       console.log(`🌐 Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:3001'}`);
+      console.log(`🔄 Status updater: Running`);
     });
   } catch (error) {
     console.error('❌ Failed to start server:', error);
@@ -83,11 +89,13 @@ async function startServer() {
 // Graceful shutdown
 process.on('SIGTERM', () => {
   console.log('SIGTERM received, shutting down gracefully');
+  statusUpdater.stop();
   process.exit(0);
 });
 
 process.on('SIGINT', () => {
   console.log('SIGINT received, shutting down gracefully');
+  statusUpdater.stop();
   process.exit(0);
 });
 

@@ -12,7 +12,9 @@
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "test:connections": "ts-node src/utils/test-connections.ts",
-    "test:api": "ts-node src/utils/test-video-api.ts"
+    "test:api": "ts-node src/utils/test-video-api.ts",
+    "test:db": "ts-node src/utils/test-database-integration.ts",
+    "db:migrate": "ts-node src/utils/migrate-db.ts"
   },
   "keywords": ["sora", "studio", "video", "ai", "openai"],
   "author": "",
