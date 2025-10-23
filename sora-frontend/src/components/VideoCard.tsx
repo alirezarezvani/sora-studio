@@ -6,6 +6,7 @@ import { Badge } from './ui/Badge';
 import { Button } from './ui/Button';
 import { VideoJob } from '@/types';
 import { videoApi } from '@/lib/api/videos';
+import { useToast } from '@/hooks/useToast';
 
 interface VideoCardProps {
   video: VideoJob;
@@ -13,6 +14,9 @@ interface VideoCardProps {
 }
 
 export const VideoCard: React.FC<VideoCardProps> = ({ video, onDelete }) => {
+  const toast = useToast();
+  const isMockMode = process.env.NEXT_PUBLIC_MOCK_MODE === 'true';
+
   const getStatusBadge = () => {
     const statusConfig = {
       queued: { variant: 'warning' as const, text: 'Queued' },
@@ -42,8 +46,15 @@ export const VideoCard: React.FC<VideoCardProps> = ({ video, onDelete }) => {
   const handleDownload = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+
+    if (isMockMode) {
+      toast.info('Demo Mode: In a real environment, the video file would download now.');
+      return;
+    }
+
     const downloadUrl = videoApi.getDownloadUrl(video.id);
     window.open(downloadUrl, '_blank');
+    toast.success('Download started!');
   };
 
   const handleDelete = (e: React.MouseEvent) => {
@@ -56,7 +67,7 @@ export const VideoCard: React.FC<VideoCardProps> = ({ video, onDelete }) => {
 
   return (
     <Link href={`/videos/${video.id}`}>
-      <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer overflow-hidden">
+      <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer overflow-hidden animate-slide-up hover:scale-[1.02]">
         {/* Thumbnail Placeholder */}
         <div className="w-full h-48 bg-gradient-to-br from-primary-100 to-primary-200 flex items-center justify-center relative">
           {video.thumbnail_url ? (

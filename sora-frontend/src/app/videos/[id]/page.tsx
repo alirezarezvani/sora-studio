@@ -8,6 +8,8 @@ import { Badge } from '@/components/ui/Badge';
 import { useVideo, useDeleteVideo, useRemixVideo } from '@/hooks/useVideos';
 import { useVideoPolling } from '@/hooks/useVideoPolling';
 import { videoApi } from '@/lib/api/videos';
+import { useToast } from '@/hooks/useToast';
+import { Skeleton } from '@/components/ui/Skeleton';
 
 export default function VideoDetailPage() {
   const params = useParams();
@@ -17,6 +19,8 @@ export default function VideoDetailPage() {
   const { data: video, isLoading } = useVideo(videoId);
   const deleteVideo = useDeleteVideo();
   const remixVideo = useRemixVideo();
+  const toast = useToast();
+  const isMockMode = process.env.NEXT_PUBLIC_MOCK_MODE === 'true';
 
   const [isRemixing, setIsRemixing] = useState(false);
   const [remixPrompt, setRemixPrompt] = useState('');
@@ -25,8 +29,13 @@ export default function VideoDetailPage() {
   useVideoPolling(video, true);
 
   const handleDownload = () => {
+    if (isMockMode) {
+      toast.info('Demo Mode: In a real environment, the video file would download now.');
+      return;
+    }
     const downloadUrl = videoApi.getDownloadUrl(videoId);
     window.open(downloadUrl, '_blank');
+    toast.success('Download started!');
   };
 
   const handleDelete = async () => {
@@ -34,24 +43,25 @@ export default function VideoDetailPage() {
 
     try {
       await deleteVideo.mutateAsync(videoId);
+      toast.success('Video deleted successfully');
       router.push('/dashboard');
     } catch (error) {
-      alert('Failed to delete video. Please try again.');
+      toast.error('Failed to delete video. Please try again.');
     }
   };
 
   const handleRemix = async () => {
     if (!remixPrompt.trim()) {
-      alert('Please enter a prompt for the remix');
+      toast.warning('Please enter a prompt for the remix');
       return;
     }
 
     try {
       await remixVideo.mutateAsync({ videoId, prompt: remixPrompt });
-      alert('Remix video created successfully!');
+      toast.success('Remix video created successfully!');
       router.push('/dashboard');
     } catch (error) {
-      alert('Failed to create remix. Please try again.');
+      toast.error('Failed to create remix. Please try again.');
     }
   };
 
@@ -71,11 +81,31 @@ export default function VideoDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4" />
-          <p className="text-gray-600">Loading video details...</p>
-        </div>
+      <div className="min-h-screen bg-gray-50">
+        <header className="bg-white shadow-sm border-b border-gray-200">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <Skeleton className="w-32 h-9" />
+          </div>
+        </header>
+        <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-6">
+              <Skeleton className="w-full aspect-video rounded-lg" />
+              <Card>
+                <CardContent>
+                  <Skeleton className="w-full h-20" />
+                </CardContent>
+              </Card>
+            </div>
+            <div className="space-y-6">
+              <Card>
+                <CardContent>
+                  <Skeleton className="w-full h-32" />
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </main>
       </div>
     );
   }
@@ -113,8 +143,8 @@ export default function VideoDetailPage() {
           <div className="lg:col-span-2 space-y-6">
             {/* Video Player / Placeholder */}
             <Card padding="none">
-              <div className="w-full aspect-video bg-gradient-to-br from-primary-100 to-primary-200 flex items-center justify-center">
-                {isCompleted && video.file_url ? (
+              <div className="w-full aspect-video bg-gradient-to-br from-primary-100 to-primary-200 flex items-center justify-center animate-fade-in">
+                {isCompleted && video.file_url && !isMockMode ? (
                   <video
                     src={video.file_url}
                     controls
@@ -123,6 +153,37 @@ export default function VideoDetailPage() {
                   >
                     Your browser does not support the video tag.
                   </video>
+                ) : isCompleted && isMockMode ? (
+                  <div className="text-center px-4">
+                    <div className="w-24 h-24 bg-primary-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <svg
+                        className="w-12 h-12 text-white"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
+                        />
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                    </div>
+                    <p className="text-primary-700 font-medium mb-2">Mock Video Complete</p>
+                    <p className="text-sm text-primary-600">
+                      In a real environment, the generated video would play here
+                    </p>
+                    <div className="mt-4">
+                      <Badge variant="info">Demo Mode Active</Badge>
+                    </div>
+                  </div>
                 ) : isPending ? (
                   <div className="text-center">
                     <svg

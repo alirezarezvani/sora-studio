@@ -6,6 +6,9 @@ import { Select } from './ui/Select';
 import { Button } from './ui/Button';
 import { VideoJob } from '@/types';
 import { useDeleteVideo } from '@/hooks/useVideos';
+import { SkeletonCard } from './ui/Skeleton';
+import { useToast } from '@/hooks/useToast';
+import { Video } from 'lucide-react';
 
 interface VideoGalleryProps {
   videos: VideoJob[];
@@ -19,6 +22,8 @@ export const VideoGallery: React.FC<VideoGalleryProps> = ({ videos, isLoading })
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [sortOrder, setSortOrder] = useState<SortOrder>('newest');
   const deleteVideo = useDeleteVideo();
+  const toast = useToast();
+  const isMockMode = process.env.NEXT_PUBLIC_MOCK_MODE === 'true';
 
   // Filter videos
   const filteredVideos = videos.filter((video) => {
@@ -40,28 +45,24 @@ export const VideoGallery: React.FC<VideoGalleryProps> = ({ videos, isLoading })
   const handleDelete = async (videoId: string) => {
     try {
       await deleteVideo.mutateAsync(videoId);
+      toast.success('Video deleted successfully');
     } catch (error) {
-      alert('Failed to delete video. Please try again.');
+      toast.error('Failed to delete video. Please try again.');
     }
   };
 
   // Loading skeleton
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {[1, 2, 3, 4, 5, 6].map((i) => (
-          <div key={i} className="bg-white rounded-lg shadow-md overflow-hidden animate-pulse">
-            <div className="w-full h-48 bg-gray-300" />
-            <div className="p-4">
-              <div className="h-4 bg-gray-300 rounded mb-2" />
-              <div className="h-4 bg-gray-300 rounded w-3/4 mb-3" />
-              <div className="flex gap-2">
-                <div className="h-6 bg-gray-300 rounded w-20" />
-                <div className="h-6 bg-gray-300 rounded w-16" />
-              </div>
-            </div>
-          </div>
-        ))}
+      <div>
+        <div className="mb-6">
+          <p className="text-sm text-gray-600">Loading your videos...</p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3].map((i) => (
+            <SkeletonCard key={i} />
+          ))}
+        </div>
       </div>
     );
   }
@@ -105,26 +106,25 @@ export const VideoGallery: React.FC<VideoGalleryProps> = ({ videos, isLoading })
 
       {/* Empty State */}
       {sortedVideos.length === 0 && (
-        <div className="text-center py-12 bg-gray-50 rounded-lg">
-          <svg
-            className="w-16 h-16 text-gray-400 mx-auto mb-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={1.5}
-              d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
-            />
-          </svg>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No videos found</h3>
-          <p className="text-gray-600 mb-4">
+        <div className="text-center py-16 bg-gradient-to-br from-gray-50 to-primary-50 rounded-xl border-2 border-dashed border-gray-200">
+          <div className="w-24 h-24 mx-auto mb-6 bg-white rounded-full flex items-center justify-center shadow-md">
+            <Video className="w-12 h-12 text-primary-500" />
+          </div>
+          <h3 className="text-2xl font-bold text-gray-900 mb-3">
+            {statusFilter !== 'all' ? 'No matching videos' : 'No videos yet'}
+          </h3>
+          <p className="text-gray-600 mb-6 max-w-md mx-auto">
             {statusFilter !== 'all'
-              ? `No ${statusFilter} videos to display`
-              : 'Get started by creating your first video'}
+              ? `No ${statusFilter === 'in_progress' ? 'videos in progress' : statusFilter + ' videos'} to display`
+              : 'Create your first AI-generated video using the form above'}
           </p>
+          {isMockMode && statusFilter === 'all' && (
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 border border-blue-200 rounded-lg">
+              <span className="text-sm font-medium text-blue-700">
+                Demo Mode: Try creating a video to see the complete flow!
+              </span>
+            </div>
+          )}
           {statusFilter !== 'all' && (
             <Button variant="secondary" onClick={() => setStatusFilter('all')}>
               Show All Videos

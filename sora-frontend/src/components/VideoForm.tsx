@@ -6,6 +6,7 @@ import { Button } from './ui/Button';
 import { Select } from './ui/Select';
 import { useCreateVideo } from '@/hooks/useVideos';
 import { CreateVideoRequest } from '@/types';
+import { useToast } from '@/hooks/useToast';
 
 interface VideoFormProps {
   onSuccess?: () => void;
@@ -20,6 +21,8 @@ export const VideoForm: React.FC<VideoFormProps> = ({ onSuccess, quotaRemaining 
   const [errors, setErrors] = useState<{ prompt?: string }>({});
 
   const createVideo = useCreateVideo();
+  const toast = useToast();
+  const isMockMode = process.env.NEXT_PUBLIC_MOCK_MODE === 'true';
 
   // Calculate estimated cost
   const calculateCost = (): number => {
@@ -49,7 +52,7 @@ export const VideoForm: React.FC<VideoFormProps> = ({ onSuccess, quotaRemaining 
     if (!validateForm()) return;
 
     if (quotaRemaining <= 0) {
-      alert('You have reached your monthly quota limit. Please upgrade or wait until next month.');
+      toast.warning('You have reached your monthly quota limit. Please upgrade or wait until next month.');
       return;
     }
 
@@ -62,6 +65,14 @@ export const VideoForm: React.FC<VideoFormProps> = ({ onSuccess, quotaRemaining 
 
     try {
       await createVideo.mutateAsync(videoData);
+
+      // Show success message
+      if (isMockMode) {
+        toast.success('Demo video created! Watch it progress through the generation stages.');
+      } else {
+        toast.success('Video creation started! You can track its progress below.');
+      }
+
       // Reset form
       setPrompt('');
       setErrors({});
@@ -74,13 +85,13 @@ export const VideoForm: React.FC<VideoFormProps> = ({ onSuccess, quotaRemaining 
 
       // Show user-friendly error messages
       if (errorMessage.includes('Billing hard limit') || errorMessage.includes('billing_hard_limit')) {
-        alert('❌ OpenAI Billing Limit Reached\n\nYour OpenAI account has no credits remaining.\n\nPlease add credits at:\nhttps://platform.openai.com/account/billing');
+        toast.error('OpenAI Billing Limit Reached - Please add credits at platform.openai.com/account/billing', 7000);
       } else if (errorMessage.includes('billing')) {
-        alert('❌ Billing Error\n\n' + errorMessage + '\n\nCheck billing at: https://platform.openai.com/account/billing');
+        toast.error(`Billing Error: ${errorMessage}`, 7000);
       } else if (errorMessage.includes('Invalid value')) {
-        alert('❌ Invalid Parameters\n\n' + errorMessage);
+        toast.error(`Invalid Parameters: ${errorMessage}`, 7000);
       } else {
-        alert('❌ Error: ' + errorMessage + '\n\nPlease try again or contact support.');
+        toast.error(`Failed to create video: ${errorMessage}`, 7000);
       }
     }
   };
@@ -88,7 +99,14 @@ export const VideoForm: React.FC<VideoFormProps> = ({ onSuccess, quotaRemaining 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Create New Video</CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle>Create New Video</CardTitle>
+          {isMockMode && (
+            <span className="text-xs font-medium px-3 py-1 bg-blue-100 text-blue-700 rounded-full">
+              Demo Mode
+            </span>
+          )}
+        </div>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
