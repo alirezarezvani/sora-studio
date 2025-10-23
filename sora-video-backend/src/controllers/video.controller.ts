@@ -317,19 +317,22 @@ export async function downloadVideo(req: Request, res: Response, next: NextFunct
     }
 
     // Download video buffer
-    const videoBuffer = await soraService.downloadVideo(id);
+    const videoData = await soraService.downloadVideo(id);
 
     // Log download event
     const ipAddress = req.ip || req.socket.remoteAddress;
     const userAgent = req.get('user-agent');
     await eventService.logVideoDownloaded(id, ipAddress, userAgent);
 
-    // Set headers for video download
-    res.setHeader('Content-Type', 'video/mp4');
-    res.setHeader('Content-Disposition', `attachment; filename="video_${id}.mp4"`);
-    res.setHeader('Content-Length', videoBuffer.length);
-
-    res.status(200).send(videoBuffer);
+    // Return the download URL (valid for 1 hour)
+    res.status(200).json({
+      success: true,
+      data: {
+        videoId: id,
+        downloadUrl: videoData.url,
+        expiresAt: videoData.expiresAt,
+      },
+    });
   } catch (error: any) {
     console.error('[VideoController] Error downloading video:', error.message);
 

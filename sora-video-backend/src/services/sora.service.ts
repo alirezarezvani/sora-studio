@@ -1,4 +1,4 @@
-import openai from '../config/openai.js';
+import axios, { AxiosError } from 'axios';
 import { VideoJob, VideoListResponse } from '../types/index.js';
 
 export interface VideoOptions {
@@ -7,6 +7,24 @@ export interface VideoOptions {
   seconds?: string;
   quality?: string;
 }
+
+// OpenAI API configuration
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+const OPENAI_ORG_ID = process.env.OPENAI_ORG_ID;
+const OPENAI_PROJECT_ID = process.env.OPENAI_PROJECT_ID;
+const OPENAI_BASE_URL = 'https://api.openai.com/v1';
+
+// Create axios instance with OpenAI configuration
+const openaiApi = axios.create({
+  baseURL: OPENAI_BASE_URL,
+  headers: {
+    'Authorization': `Bearer ${OPENAI_API_KEY}`,
+    'Content-Type': 'application/json',
+    ...(OPENAI_ORG_ID && { 'OpenAI-Organization': OPENAI_ORG_ID }),
+    ...(OPENAI_PROJECT_ID && { 'OpenAI-Project': OPENAI_PROJECT_ID }),
+  },
+  timeout: 30000, // 30 second timeout
+});
 
 class SoraService {
   /**
@@ -20,9 +38,7 @@ class SoraService {
       console.log(`[SoraService] Creating video with prompt: "${prompt.substring(0, 50)}..."`);
       console.log(`[SoraService] Options:`, options);
 
-      // Note: TypeScript types may not be up-to-date with videos API
-      // Using type assertion to access the videos endpoint
-      const video = await (openai as any).videos.create({
+      const response = await openaiApi.post('/videos', {
         model: options?.model || 'sora-2',
         prompt,
         ...(options?.size && { size: options.size }),
@@ -30,6 +46,7 @@ class SoraService {
         ...(options?.quality && { quality: options.quality }),
       });
 
+      const video = response.data;
       console.log(`[SoraService] Video created successfully: ${video.id}, status: ${video.status}`);
       return video as VideoJob;
     } catch (error: any) {
@@ -47,42 +64,39 @@ class SoraService {
     try {
       console.log(`[SoraService] Retrieving status for video: ${videoId}`);
 
-      const video = await (openai as any).videos.retrieve(videoId);
+      const response = await openaiApi.get(`/videos/${videoId}`);
+      const video = response.data;
 
-      console.log(`[SoraService] Video ${videoId} status: ${video.status}, progress: ${video.progress}%`);
+      console.log(`[SoraService] Video status: ${video.id} - ${video.status}`);
       return video as VideoJob;
     } catch (error: any) {
-      console.error(`[SoraService] Error getting video status for ${videoId}:`, error.message);
+      console.error(`[SoraService] Error retrieving video status:`, error.message);
       throw this.handleError(error);
     }
   }
 
   /**
-   * Download completed video content
+   * Download video content
    * @param videoId - ID of the video to download
-   * @returns Buffer containing video file data
+   * @returns Video content URL (valid for 1 hour)
    */
-  async downloadVideo(videoId: string): Promise<Buffer> {
+  async downloadVideo(videoId: string): Promise<{ url: string; expiresAt: string }> {
     try {
-      console.log(`[SoraService] Downloading video content: ${videoId}`);
+      console.log(`[SoraService] Downloading video: ${videoId}`);
 
-      // First check if video is completed
-      const video = await this.getVideoStatus(videoId);
+      const response = await openaiApi.get(`/videos/${videoId}/content`);
 
-      if (video.status !== 'completed') {
-        throw new Error(`Video ${videoId} is not completed yet. Current status: ${video.status}`);
-      }
+      // The response contains the video URL
+      const videoUrl = response.data.url || response.data.download_url;
+      const expiresAt = new Date(Date.now() + 3600000).toISOString(); // 1 hour from now
 
-      // Download video content
-      const response = await (openai as any).videos.downloadContent(videoId);
-      const blob = await response.blob();
-      const arrayBuffer = await blob.arrayBuffer();
-      const buffer = Buffer.from(arrayBuffer);
-
-      console.log(`[SoraService] Video ${videoId} downloaded successfully. Size: ${buffer.length} bytes`);
-      return buffer;
+      console.log(`[SoraService] Video download URL retrieved for: ${videoId}`);
+      return {
+        url: videoUrl,
+        expiresAt,
+      };
     } catch (error: any) {
-      console.error(`[SoraService] Error downloading video ${videoId}:`, error.message);
+      console.error(`[SoraService] Error downloading video:`, error.message);
       throw this.handleError(error);
     }
   }
@@ -91,48 +105,50 @@ class SoraService {
    * Remix an existing video with a new prompt
    * @param videoId - ID of the video to remix
    * @param newPrompt - New prompt for remixing
-   * @returns VideoJob object for the new remixed video
+   * @param options - Optional video generation parameters
+   * @returns New VideoJob object
    */
-  async remixVideo(videoId: string, newPrompt: string): Promise<VideoJob> {
+  async remixVideo(
+    videoId: string,
+    newPrompt: string,
+    options?: VideoOptions
+  ): Promise<VideoJob> {
     try {
       console.log(`[SoraService] Remixing video ${videoId} with prompt: "${newPrompt.substring(0, 50)}..."`);
 
-      // First verify the source video exists and is completed
-      const sourceVideo = await this.getVideoStatus(videoId);
-
-      if (sourceVideo.status !== 'completed') {
-        throw new Error(`Source video ${videoId} must be completed before remixing. Current status: ${sourceVideo.status}`);
-      }
-
-      const remixedVideo = await (openai as any).videos.remix(videoId, {
+      const response = await openaiApi.post('/videos', {
+        model: options?.model || 'sora-2',
         prompt: newPrompt,
+        reference_video_id: videoId,
+        ...(options?.size && { size: options.size }),
+        ...(options?.seconds && { seconds: options.seconds }),
+        ...(options?.quality && { quality: options.quality }),
       });
 
-      console.log(`[SoraService] Remix created successfully: ${remixedVideo.id}, remixed from: ${videoId}`);
-      return remixedVideo as VideoJob;
+      const video = response.data;
+      console.log(`[SoraService] Remix video created: ${video.id}`);
+      return video as VideoJob;
     } catch (error: any) {
-      console.error(`[SoraService] Error remixing video ${videoId}:`, error.message);
+      console.error(`[SoraService] Error remixing video:`, error.message);
       throw this.handleError(error);
     }
   }
 
   /**
-   * List videos with pagination
-   * @param limit - Number of videos to retrieve (max 100)
-   * @param after - Cursor for pagination
-   * @returns VideoListResponse with array of videos
+   * List videos
+   * @param limit - Maximum number of videos to return
+   * @returns List of video jobs
    */
-  async listVideos(limit: number = 20, after?: string): Promise<VideoListResponse> {
+  async listVideos(limit: number = 20): Promise<VideoListResponse> {
     try {
-      console.log(`[SoraService] Listing videos: limit=${limit}, after=${after || 'none'}`);
+      console.log(`[SoraService] Listing videos (limit: ${limit})`);
 
-      const response = await (openai as any).videos.list({
-        limit,
-        ...(after && { after }),
+      const response = await openaiApi.get('/videos', {
+        params: { limit },
       });
 
-      console.log(`[SoraService] Retrieved ${response.data.length} videos`);
-      return response as VideoListResponse;
+      console.log(`[SoraService] Found ${response.data.data?.length || 0} videos`);
+      return response.data as VideoListResponse;
     } catch (error: any) {
       console.error(`[SoraService] Error listing videos:`, error.message);
       throw this.handleError(error);
@@ -148,98 +164,81 @@ class SoraService {
     try {
       console.log(`[SoraService] Deleting video: ${videoId}`);
 
-      const result = await (openai as any).videos.delete(videoId);
+      const response = await openaiApi.delete(`/videos/${videoId}`);
 
-      console.log(`[SoraService] Video ${videoId} deleted successfully`);
-      return result as { id: string; deleted: boolean };
+      console.log(`[SoraService] Video deleted: ${videoId}`);
+      return response.data;
     } catch (error: any) {
-      console.error(`[SoraService] Error deleting video ${videoId}:`, error.message);
+      console.error(`[SoraService] Error deleting video:`, error.message);
       throw this.handleError(error);
     }
   }
 
   /**
    * Wait for video completion with polling
-   * @param videoId - ID of the video to monitor
-   * @param onProgress - Callback for progress updates
-   * @param timeoutMs - Maximum time to wait in milliseconds
+   * @param videoId - ID of the video to wait for
+   * @param maxAttempts - Maximum number of polling attempts
+   * @param pollInterval - Interval between polls in milliseconds
    * @returns Completed VideoJob
    */
   async waitForCompletion(
     videoId: string,
-    onProgress?: (progress: number, status: string) => void,
-    timeoutMs: number = 300000 // 5 minutes default
+    maxAttempts: number = 60,
+    pollInterval: number = 10000
   ): Promise<VideoJob> {
-    const startTime = Date.now();
-    const pollInterval = 10000; // 10 seconds
+    console.log(`[SoraService] Waiting for video ${videoId} to complete...`);
 
-    console.log(`[SoraService] Waiting for video ${videoId} to complete (timeout: ${timeoutMs}ms)`);
-
-    while (Date.now() - startTime < timeoutMs) {
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       const video = await this.getVideoStatus(videoId);
 
-      if (onProgress) {
-        onProgress(video.progress, video.status);
-      }
-
       if (video.status === 'completed') {
-        console.log(`[SoraService] Video ${videoId} completed successfully`);
+        console.log(`[SoraService] Video ${videoId} completed after ${attempt} attempts`);
         return video;
       }
 
       if (video.status === 'failed') {
-        const errorMsg = video.error?.message || 'Video generation failed';
-        console.error(`[SoraService] Video ${videoId} failed: ${errorMsg}`);
-        throw new Error(errorMsg);
+        throw new Error(`Video generation failed: ${video.error || 'Unknown error'}`);
       }
 
+      console.log(`[SoraService] Video ${videoId} status: ${video.status} (attempt ${attempt}/${maxAttempts})`);
+
       // Wait before next poll
-      await new Promise((resolve) => setTimeout(resolve, pollInterval));
+      if (attempt < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, pollInterval));
+      }
     }
 
-    throw new Error(`Timeout waiting for video ${videoId} completion`);
+    throw new Error(`Video generation timeout: exceeded ${maxAttempts} attempts`);
   }
 
   /**
-   * Handle and normalize errors from OpenAI API
-   * @param error - Original error object
-   * @returns Normalized error
+   * Handle and format errors from OpenAI API
+   * @param error - Error from API call
+   * @returns Formatted error
    */
   private handleError(error: any): Error {
-    // OpenAI API errors
-    if (error.status) {
-      switch (error.status) {
-        case 400:
-          return new Error(`Invalid request: ${error.message || 'Bad request'}`);
-        case 401:
-          return new Error('Authentication failed. Check your API key.');
-        case 403:
-          return new Error('Access forbidden. Check your permissions.');
-        case 404:
-          return new Error('Video not found or has been deleted.');
-        case 429:
-          return new Error('Rate limit exceeded. Please try again later.');
-        case 500:
-        case 502:
-        case 503:
-          return new Error('OpenAI service error. Please try again later.');
-        default:
-          return new Error(`API error (${error.status}): ${error.message}`);
-      }
+    if (axios.isAxiosError(error)) {
+      const axiosError = error as AxiosError;
+      const status = axiosError.response?.status;
+      const data = axiosError.response?.data as any;
+
+      const message = data?.error?.message || axiosError.message || 'Unknown error';
+      const errorType = data?.error?.type || 'api_error';
+
+      console.error(`[SoraService] OpenAI API Error (${status}):`, message);
+
+      // Create a more informative error
+      const apiError = new Error(`OpenAI API Error: ${message}`);
+      (apiError as any).status = status;
+      (apiError as any).type = errorType;
+      (apiError as any).originalError = data;
+
+      return apiError;
     }
 
-    // Network or other errors
-    if (error.code === 'ECONNREFUSED') {
-      return new Error('Cannot connect to OpenAI API. Check your network connection.');
-    }
-
-    if (error.code === 'ETIMEDOUT') {
-      return new Error('Request to OpenAI API timed out. Please try again.');
-    }
-
-    // Return original error if not recognized
     return error;
   }
 }
 
+// Export singleton instance
 export default new SoraService();

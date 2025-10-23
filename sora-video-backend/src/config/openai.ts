@@ -9,6 +9,10 @@ const openai = new OpenAI({
   project: process.env.OPENAI_PROJECT_ID,
 });
 
+// Debug logging
+console.log('[OpenAI Config] Client initialized:', !!openai);
+console.log('[OpenAI Config] Has videos API:', !!(openai as any)?.videos);
+
 // Test connection on startup
 async function testConnection() {
   try {
@@ -20,5 +24,4 @@ async function testConnection() {
   }
 }
 
-export { testConnection };
-export default openai;
+export { openai, testConnection };
