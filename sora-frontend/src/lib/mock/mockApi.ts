@@ -5,6 +5,7 @@ import {
   getSampleMockVideos,
   simulateNetworkDelay,
 } from './mockData';
+import { mockQuotaStore } from './mockQuotaData';
 
 /**
  * In-memory storage for mock videos
@@ -24,6 +25,9 @@ class MockVideoStore {
 
     const video = generateMockVideo(request);
     this.videos.set(video.id, video);
+
+    // Increment quota usage for mock mode
+    mockQuotaStore.incrementUsage();
 
     // Start automatic status progression
     this.startProgressSimulation(video.id);
