@@ -11,6 +11,7 @@ export interface VideoJob {
   remixed_from_video_id?: string;
   file_url?: string;
   thumbnail_url?: string;
+  cost?: number;
   created_at: number;
   completed_at?: number;
   expires_at?: number;

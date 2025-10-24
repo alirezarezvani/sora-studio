@@ -1,0 +1,156 @@
+/* Stack Auth UI Overrides - Force Light Theme */
+
+/* CSS Variables that Stack Auth might use */
+:root {
+  --stack-bg-primary: #f9fafb !important;
+  --stack-bg-secondary: #ffffff !important;
+  --stack-text-primary: #111827 !important;
+  --stack-text-secondary: #6b7280 !important;
+  --stack-border-color: #e5e7eb !important;
+  --stack-primary-color: #059669 !important;
+}
+
+/* Override Stack Auth dark backgrounds */
+[data-stack-app],
+[data-stack-theme],
+.stack-scope,
+.stack-app {
+  background-color: #f9fafb !important;
+  color: #111827 !important;
+}
+
+/* Cards and containers */
+[data-stack-app] [class*="card"],
+[data-stack-app] [class*="container"],
+[data-stack-app] [class*="panel"],
+[data-stack-theme] [class*="card"],
+[data-stack-theme] [class*="container"],
+[data-stack-theme] [class*="panel"],
+.stack-scope [class*="card"],
+.stack-scope [class*="container"],
+.stack-scope [class*="panel"],
+[data-stack-app] > div,
+[data-stack-theme] > div,
+.stack-scope > div {
+  background-color: #ffffff !important;
+  color: #111827 !important;
+}
+
+/* Text elements */
+[data-stack-app] h1,
+[data-stack-app] h2,
+[data-stack-app] h3,
+[data-stack-app] h4,
+[data-stack-app] h5,
+[data-stack-app] h6,
+[data-stack-app] p,
+[data-stack-app] span,
+[data-stack-app] label,
+[data-stack-app] div {
+  color: #111827 !important;
+}
+
+/* Input fields */
+[data-stack-app] input,
+[data-stack-app] textarea,
+[data-stack-app] select {
+  background-color: #ffffff !important;
+  color: #111827 !important;
+  border-color: #d1d5db !important;
+}
+
+[data-stack-app] input::placeholder,
+[data-stack-app] textarea::placeholder {
+  color: #6b7280 !important;
+}
+
+/* Buttons */
+[data-stack-app] button {
+  background-color: #059669 !important;
+  color: #ffffff !important;
+  border-color: #059669 !important;
+}
+
+[data-stack-app] button:hover {
+  background-color: #047857 !important;
+}
+
+/* Secondary buttons */
+[data-stack-app] button[class*="secondary"],
+[data-stack-app] button[class*="outline"] {
+  background-color: #ffffff !important;
+  color: #059669 !important;
+  border: 1px solid #059669 !important;
+}
+
+[data-stack-app] button[class*="secondary"]:hover,
+[data-stack-app] button[class*="outline"]:hover {
+  background-color: #f0fdf4 !important;
+}
+
+/* Links */
+[data-stack-app] a {
+  color: #059669 !important;
+}
+
+[data-stack-app] a:hover {
+  color: #047857 !important;
+}
+
+/* Borders */
+[data-stack-app] [class*="border"],
+[data-stack-app] hr {
+  border-color: #e5e7eb !important;
+}
+
+/* Account Settings specific overrides */
+[data-stack-app] [class*="settings"],
+[data-stack-app] [class*="account"] {
+  background-color: #f9fafb !important;
+}
+
+[data-stack-app] [class*="settings"] > div,
+[data-stack-app] [class*="account"] > div {
+  background-color: #ffffff !important;
+}
+
+/* Force all backgrounds to be light */
+[data-stack-app] * {
+  background-color: inherit !important;
+}
+
+[data-stack-app] > * {
+  background-color: transparent !important;
+}
+
+[data-stack-app] [class*="card"] > *,
+[data-stack-app] [class*="panel"] > * {
+  background-color: #ffffff !important;
+}
+
+/* Remove any default padding/margins that might conflict with our card */
+[data-stack-app] {
+  padding: 1.5rem !important;
+}
+
+/* Ensure form elements have proper spacing */
+[data-stack-app] form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Style headings within Stack Auth */
+[data-stack-app] h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: #111827 !important;
+}
+
+[data-stack-app] h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: #111827 !important;
+}

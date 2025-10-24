@@ -6,7 +6,10 @@ import { testConnection as testDbConnection } from './config/database.js';
 import { testConnection as testOpenAIConnection } from './config/openai.js';
 import { initRedis } from './config/redis.js';
 import videoRoutes from './routes/video.routes.js';
+import quotaRoutes from './routes/quota.routes.js';
 import statusUpdater from './workers/status-updater.js';
+import { authenticateUser } from './middleware/auth.js';
+import { apiLimiter } from './middleware/rateLimit.js';
 
 // Load environment variables
 dotenv.config();
@@ -42,7 +45,10 @@ app.get('/health', async (_req, res) => {
 });
 
 // API Routes
-app.use('/api/videos', videoRoutes);
+// Apply rate limiting and authentication middleware to all API routes
+app.use('/api', apiLimiter); // Rate limit all API endpoints
+app.use('/api/videos', authenticateUser, videoRoutes);
+app.use('/api/quota', authenticateUser, quotaRoutes);
 
 // Error handling middleware
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {

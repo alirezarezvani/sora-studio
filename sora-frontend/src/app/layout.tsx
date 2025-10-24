@@ -1,11 +1,11 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
+import './stack-auth-overrides.css';
 import { QueryProvider } from '@/providers/QueryProvider';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { ToastProvider } from '@/providers/ToastProvider';
 import { MockModeBanner } from '@/components/MockModeBanner';
-
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {

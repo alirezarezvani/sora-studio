@@ -10,6 +10,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@stackframe/stack": "^2.8.44",
     "@tanstack/react-query": "^5.12.2",
     "axios": "^1.6.2",
     "lucide-react": "^0.294.0",

@@ -7,6 +7,7 @@ import {
   downloadVideo,
   remixVideo,
 } from '../controllers/video.controller.js';
+import { videoCreationLimiter } from '../middleware/rateLimit.js';
 
 const router = Router();
 
@@ -15,8 +16,8 @@ const router = Router();
  * Base path: /api/videos
  */
 
-// Create a new video generation job
-router.post('/', createVideo);
+// Create a new video generation job (with strict rate limiting)
+router.post('/', videoCreationLimiter, createVideo);
 
 // List all videos (with pagination)
 router.get('/', listVideos);
@@ -30,7 +31,7 @@ router.delete('/:id', deleteVideo);
 // Download video content
 router.get('/:id/download', downloadVideo);
 
-// Remix an existing video
-router.post('/:id/remix', remixVideo);
+// Remix an existing video (with strict rate limiting)
+router.post('/:id/remix', videoCreationLimiter, remixVideo);
 
 export default router;
