@@ -10,6 +10,10 @@ import quotaRoutes from './routes/quota.routes.js';
 import statusUpdater from './workers/status-updater.js';
 import { authenticateUser } from './middleware/auth.js';
 import { apiLimiter } from './middleware/rateLimit.js';
+import { requestLogger, requestBodyLogger } from './middleware/requestLogger.js';
+import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
+import { healthCheck, readinessCheck, livenessCheck } from './middleware/healthCheck.js';
+import logger from './utils/logger.js';
 
 // Load environment variables
 dotenv.config();
@@ -17,7 +21,7 @@ dotenv.config();
 // Create Express app
 const app = express();
 
-// Middleware
+// Middleware - Order matters!
 app.use(helmet());
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:3001',
@@ -26,23 +30,24 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Request logging (must be before routes)
+app.use(requestLogger);
+app.use(requestBodyLogger);
+
 // Routes placeholder
 app.get('/', (_req, res) => {
   res.json({
     message: 'Sora Studio API',
     version: '1.0.0',
     status: 'running',
+    documentation: '/api/docs',
   });
 });
 
-// Health check
-app.get('/health', async (_req, res) => {
-  res.json({
-    status: 'ok',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-  });
-});
+// Health check endpoints
+app.get('/health', healthCheck); // Basic health
+app.get('/health/ready', readinessCheck); // Readiness probe (checks dependencies)
+app.get('/health/live', livenessCheck); // Liveness probe (process alive)
 
 // API Routes
 // Apply rate limiting and authentication middleware to all API routes
@@ -50,19 +55,11 @@ app.use('/api', apiLimiter); // Rate limit all API endpoints
 app.use('/api/videos', authenticateUser, videoRoutes);
 app.use('/api/quota', authenticateUser, quotaRoutes);
 
-// Error handling middleware
-app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  console.error('Error:', err);
+// 404 handler (must be after all routes)
+app.use(notFoundHandler);
 
-  const statusCode = err.statusCode || 500;
-  const message = err.message || 'Internal Server Error';
-
-  res.status(statusCode).json({
-    success: false,
-    error: message,
-    ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
-  });
-});
+// Error handling middleware (must be last)
+app.use(errorHandler);
 
 // Start server
 const PORT = process.env.PORT || 3000;
@@ -70,37 +67,46 @@ const PORT = process.env.PORT || 3000;
 async function startServer() {
   try {
     // Test connections
-    console.log('🔍 Testing connections...');
+    logger.info('Testing connections...');
     await testDbConnection();
     await testOpenAIConnection();
     await initRedis();
 
     // Start background worker for status updates
-    console.log('⚙️  Starting background worker...');
+    logger.info('Starting background worker...');
     statusUpdater.start();
 
     // Start server
     app.listen(PORT, () => {
-      console.log(`🚀 Sora Studio API running on port ${PORT}`);
-      console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
-      console.log(`🌐 Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:3001'}`);
-      console.log(`🔄 Status updater: Running`);
+      logger.info('Server started successfully', {
+        port: PORT,
+        environment: process.env.NODE_ENV || 'development',
+        frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3001',
+        features: {
+          statusUpdater: true,
+          redis: true,
+          database: true,
+        },
+      });
     });
-  } catch (error) {
-    console.error('❌ Failed to start server:', error);
+  } catch (error: any) {
+    logger.error('Failed to start server', {
+      error: error.message,
+      stack: error.stack,
+    });
     process.exit(1);
   }
 }
 
 // Graceful shutdown
 process.on('SIGTERM', () => {
-  console.log('SIGTERM received, shutting down gracefully');
+  logger.info('SIGTERM received, shutting down gracefully');
   statusUpdater.stop();
   process.exit(0);
 });
 
 process.on('SIGINT', () => {
-  console.log('SIGINT received, shutting down gracefully');
+  logger.info('SIGINT received, shutting down gracefully');
   statusUpdater.stop();
   process.exit(0);
 });

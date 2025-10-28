@@ -2,15 +2,15 @@ import rateLimit from 'express-rate-limit';
 
 /**
  * Rate limiting for video creation endpoint
- * Limits per authenticated user to prevent abuse
+ * Limits per IP address to prevent abuse
  *
  * Limits:
- * - 10 videos per hour per user (production-ready limit)
+ * - 10 videos per hour per IP (production-ready limit)
  * - Returns 429 Too Many Requests when exceeded
  */
 export const videoCreationLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
-  max: 10, // Limit each user to 10 video creations per hour
+  max: 10, // Limit each IP to 10 video creations per hour
   message: {
     success: false,
     error: 'Too many video creation requests. Please try again later.',
@@ -18,10 +18,7 @@ export const videoCreationLimiter = rateLimit({
   },
   standardHeaders: true, // Return rate limit info in `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-  // Use user ID as the key for rate limiting (per user, not per IP)
-  keyGenerator: (req) => {
-    return req.user?.id || req.ip || 'anonymous';
-  },
+  // Use default key generator (properly handles IPv6)
   // Skip rate limiting for successful requests that don't actually create videos
   skip: (_req, res) => {
     return res.statusCode !== 201; // Only count successful creations (201)
@@ -45,11 +42,11 @@ export const videoCreationLimiter = rateLimit({
  * Applies to all API endpoints to prevent abuse
  *
  * Limits:
- * - 100 requests per 15 minutes per user
+ * - 100 requests per 15 minutes per IP
  */
 export const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each user to 100 requests per 15 minutes
+  max: 100, // Limit each IP to 100 requests per 15 minutes
   message: {
     success: false,
     error: 'Too many requests. Please slow down.',
@@ -57,9 +54,7 @@ export const apiLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req) => {
-    return req.user?.id || req.ip || 'anonymous';
-  },
+  // Use default key generator (properly handles IPv6)
   handler: (req, res) => {
     console.log(`[RateLimit] User ${req.user?.id || 'anonymous'} exceeded general API rate limit`);
     res.status(429).json({

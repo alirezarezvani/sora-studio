@@ -20,6 +20,14 @@ async function testConnection() {
     console.log('✅ OpenAI API connected successfully');
   } catch (error: any) {
     console.error('❌ OpenAI API connection failed:', error.message);
+
+    // In development, warn but don't fail (allows mock mode / development without real API)
+    if (process.env.NODE_ENV === 'development' || process.env.SKIP_OPENAI_CHECK === 'true') {
+      console.warn('⚠️  Running in development mode without OpenAI API connection');
+      console.warn('⚠️  Video generation will fail unless using mock mode');
+      return; // Don't throw, just warn
+    }
+
     throw error;
   }
 }
