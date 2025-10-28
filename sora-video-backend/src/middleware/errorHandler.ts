@@ -108,7 +108,7 @@ export function errorHandler(
   err: any,
   req: Request,
   res: Response,
-  next: NextFunction
+  _next: NextFunction
 ): void {
   // Determine if this is an operational error
   const isOperational = err.isOperational || err.statusCode || false;
@@ -245,7 +245,7 @@ export function errorHandler(
  * Not found handler (404)
  * Should be placed before error handler but after all routes
  */
-export function notFoundHandler(req: Request, res: Response, next: NextFunction): void {
+export function notFoundHandler(req: Request, _res: Response, next: NextFunction): void {
   const error = new NotFoundError(`Route not found: ${req.method} ${req.path}`);
   next(error);
 }

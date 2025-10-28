@@ -19,10 +19,8 @@ export function requestLogger(req: Request, res: Response, next: NextFunction): 
 
   // Capture response
   const originalSend = res.send;
-  let responseBody: any;
 
   res.send = function (data): Response {
-    responseBody = data;
     return originalSend.call(this, data);
   };
 
@@ -53,7 +51,7 @@ export function requestLogger(req: Request, res: Response, next: NextFunction): 
  * Request body logger (for debugging)
  * Only logs in development mode
  */
-export function requestBodyLogger(req: Request, res: Response, next: NextFunction): void {
+export function requestBodyLogger(req: Request, _res: Response, next: NextFunction): void {
   if (process.env.NODE_ENV !== 'development') {
     return next();
   }

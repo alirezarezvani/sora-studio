@@ -94,7 +94,7 @@ function determineOverallStatus(checks: HealthStatus['checks']): 'healthy' | 'de
  * Basic health check endpoint
  * Returns 200 if service is running
  */
-export async function healthCheck(req: Request, res: Response): Promise<void> {
+export async function healthCheck(_req: Request, res: Response): Promise<void> {
   const uptime = process.uptime();
 
   // Quick health check - just confirms the service is running
@@ -110,7 +110,7 @@ export async function healthCheck(req: Request, res: Response): Promise<void> {
  * Comprehensive readiness check
  * Checks all dependencies before marking as ready
  */
-export async function readinessCheck(req: Request, res: Response): Promise<void> {
+export async function readinessCheck(_req: Request, res: Response): Promise<void> {
   try {
     // Run all checks in parallel
     const [databaseCheck, redisCheck] = await Promise.all([
@@ -152,7 +152,7 @@ export async function readinessCheck(req: Request, res: Response): Promise<void>
  * Liveness check endpoint
  * Simple check that the process is alive
  */
-export async function livenessCheck(req: Request, res: Response): Promise<void> {
+export async function livenessCheck(_req: Request, res: Response): Promise<void> {
   res.status(200).json({
     status: 'alive',
     timestamp: new Date().toISOString(),
