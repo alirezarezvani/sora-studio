@@ -22,16 +22,16 @@ router.post('/', videoCreationLimiter, createVideo);
 // List all videos (with pagination)
 router.get('/', listVideos);
 
-// Get specific video status
-router.get('/:id', getVideo);
-
-// Delete a video
-router.delete('/:id', deleteVideo);
-
-// Download video content
+// Download video content (MUST be before /:id to avoid route collision)
 router.get('/:id/download', downloadVideo);
 
 // Remix an existing video (with strict rate limiting)
 router.post('/:id/remix', videoCreationLimiter, remixVideo);
+
+// Get specific video status (MUST be after specific routes like /download)
+router.get('/:id', getVideo);
+
+// Delete a video
+router.delete('/:id', deleteVideo);
 
 export default router;

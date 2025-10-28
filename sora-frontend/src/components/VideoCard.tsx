@@ -27,9 +27,10 @@ export const VideoCard: React.FC<VideoCardProps> = ({ video, onDelete, onRemix }
       in_progress: { variant: 'info' as const, text: 'In Progress' },
       completed: { variant: 'success' as const, text: 'Completed' },
       failed: { variant: 'danger' as const, text: 'Failed' },
+      deleted: { variant: 'secondary' as const, text: 'Expired' },
     };
 
-    const config = statusConfig[video.status];
+    const config = statusConfig[video.status] || { variant: 'secondary' as const, text: video.status || 'Unknown' };
     return <Badge variant={config.variant}>{config.text}</Badge>;
   };
 
